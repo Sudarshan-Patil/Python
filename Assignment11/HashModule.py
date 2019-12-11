@@ -1,4 +1,3 @@
-from sys import *
 import hashlib
 
 def checksum(path, blocksize=1024):
