@@ -1,65 +1,84 @@
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
-from scipy.spatial import distance
-from sklearn.metrics import accuracy_score
+from sklearn import preprocessing
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn import tree
 import pandas as pd
-from sklearn import preprocessing 
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
-def getDist(test_data, train_data):
-	return distance.euclidean(test_data, train_data)
-
-class Classifier():
-	def fit(self, train_data, train_target):
-		self.TrainingData = train_data
-		self.Trainingtarget = train_target
-	
-	def predict(self, test_data):
-		prediction = []
-		for i in range(len(test_data)):
-			minDistance = self.getMinDistance(test_data[i])
-			prediction.append(minDistance)
-		return prediction
-			
-	def getMinDistance(self, testData):
-		minDist = getDist(testData, self.TrainingData[0]);
-		index = 0;
-		for i in range(1,len(self.TrainingData)):
-			dist = getDist(testData, self.TrainingData[i])
-			if dist < minDist:
-				minDist = dist
-				index = i
+class CheckWeather():
+	def __init__(self, sourcedata, targetdata):
+		self.sourcedata = sourcedata
+		self.targetdata = targetdata
 		
-		return self.Trainingtarget[index]
+	def getTrainingData(self):
+		return train_test_split(self.sourcedata, self.targetdata, test_size = 0.5)
+		
+	def checkAccuracyWithKnn(self, knn=3):
+		train_data, test_data, train_target, test_target = self.getTrainingData()
+		
+		classifierKnn = KNeighborsClassifier(n_neighbors=knn)
+		classifierKnn.fit(train_data, train_target)	
+		knnresult = classifierKnn.predict(test_data)
+
+		accuracy = accuracy_score(test_target,knnresult)
+		print("KNN accuracy : ", accuracy*100)
+	
+	def checkAccuracyWithTree(self):
+		train_data, test_data, train_target, test_target = self.getTrainingData()
+		
+		classifierTree = tree.DecisionTreeClassifier()
+		classifierTree.fit(train_data, train_target)
+		treeResult = classifierTree.predict(test_data)
+		
+		accuracy = accuracy_score(test_target,treeResult)
+		print("Tree accuracy : ", accuracy*100)
+	
+	def checkWeather(self, source):
+		classifierTree = tree.DecisionTreeClassifier()
+		classifierTree.fit(self.sourcedata, self.targetdata)
+		treeResult = classifierTree.predict(source)
+		return treeResult
+		
 
 def main():
-	data = load_iris()
-	
+	weatherArr = {'overcast': 0, 'rainy':1, 'sunny':2}
+	temperatureArr = {'cool': 0, 'hot':1, 'mild':2}
+
 	label_encoder = preprocessing.LabelEncoder()
-	
-	raw_data = pd.read_csv('MarvellousInfosystems_PlayPredictor.csv', index_col=0)
-# 	
-# 	climate = pd.DataFrame(df, index = ['Wether', 'Temperature'])
-	
-	dataset = pd.read_csv('MarvellousInfosystems_PlayPredictor.csv', sep=',').values
-	
-	sourcedata = pd.DataFrame(raw_data, columns = ['Wether', 'Temperature'])
-	targetdata = pd.DataFrame(raw_data, columns = ['Play'])
-			
-# 	sourcedata = label_encoder.fit_transform(sourcedata)
-	targetdata = label_encoder.fit_transform(targetdata)
-	
-	print(targetdata)
 		
-	train_data, test_data, train_target, test_target = train_test_split(sourcedata, targetdata, test_size = 0.5)
-
-	classifier = Classifier()
+	sourcedata = pd.read_csv('MarvellousInfosystems_PlayPredictor.csv', usecols = [1,2])
+	targetdata = pd.read_csv('MarvellousInfosystems_PlayPredictor.csv', usecols = [3])	
+		
 	
-	classifier.fit(train_data, train_target)
-	
-	result = classifier.predict(test_data)	
-	print(result)
-	accuracy = accuracy_score(test_target,result)
-	print(accuracy*100)
+	sourcedata['Weather'] = label_encoder.fit_transform(sourcedata['Weather'])
+	sourcedata['Temperature'] = label_encoder.fit_transform(sourcedata['Temperature'])
 
+	targetdata['Play'] = label_encoder.fit_transform(targetdata['Play'])
+	ck = CheckWeather(sourcedata, targetdata)
+	
+	ck.checkAccuracyWithKnn(3)
+	
+	ck.checkAccuracyWithTree()
+	
+	weather = input("Is it Sunny, Rainy or Overcast : ")
+	if weather.lower() not in weatherArr:
+		print("Invalid weather");
+		exit()
+
+	temparature = input("Is it Hot, Mild or Cool : ")
+	if temparature.lower() not in temperatureArr:
+		print("Invalid temparature");
+		exit()
+	
+	df = [{'Weather' : weatherArr[weather.lower()], 'Temperature' : temperatureArr[temparature.lower()]}]
+	data = pd.DataFrame(df)
+	
+	result = ck.checkWeather(data)
+	
+	if(result[0]):
+		print("Weather is clear for play")
+	else:
+		print("Sorry, we can play today due to weather")
+	
 if __name__ == "__main__":
 	main()
