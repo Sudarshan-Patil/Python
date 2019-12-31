@@ -10,8 +10,8 @@ def eucdistance(test, train):
 	return distance.euclidean(test, train)
 
 class Classifier:
-	def __init__(self, source, target):
-		train_data, test_data, train_target, test_target = train_test_split(source, target, test_size=0.3)
+	def __init__(self, source, target, size=0.3):
+		train_data, test_data, train_target, test_target = train_test_split(source, target, test_size = size)
 		self.trainingData = train_data
 		self.trainingTarget = train_target
 		self.testingData = test_data
@@ -70,9 +70,18 @@ def main():
 
 	print("Total User defined KNN accuracy : ", classifier.checkAccuracy(knnresult))
 
-	for i in range(1, len(classifier.trainingData)):
-		knn = classifier.usingKnn(i)
-		print("Total KNN accuracy with  n as %d is : %f"% (i, classifier.checkAccuracy(knn)))
+	best = 0
+	index = 2
+	clf = Classifier(features, target, 0.5)
+	for i in range(3, len(clf.trainingData)):
+		knn = clf.usingKnn(i)
+		acc = clf.checkAccuracy(knn)
+		if best < acc:
+			best = acc
+			index = i
+		print("Total KNN accuracy with  n as %d is : %f"% (i, acc))
+
+	print("Best value for n is %d and best accuracy is %f"%(index, best))
 
 if __name__ == "__main__":
 	main()
